@@ -36,9 +36,13 @@ export function getStyle(globalPrefixCls: string, theme: Theme) {
 
   // ================ Primary Color ================
   if (theme.primaryColor) {
+    // 根据 theme.primaryColor 生成 primary 相关的色值，存入 variables
     fillColor(theme.primaryColor, 'primary');
 
+    // 转成 TinyColor 色值格式
     const primaryColor = new TinyColor(theme.primaryColor);
+
+    // 10个不同阶梯色值
     const primaryColors = generate(primaryColor.toRgbString());
 
     // Legacy - We should use semantic naming standard
@@ -84,6 +88,7 @@ export function getStyle(globalPrefixCls: string, theme: Theme) {
   }
 
   // Convert to css variables
+  // cssList ['--theme-color: xxx','--theme-color-1: xxx',...,'--theme-color-10: xxx' ]
   const cssList = Object.keys(variables).map(
     key => `--${globalPrefixCls}-${key}: ${variables[key]};`,
   );
@@ -99,6 +104,7 @@ export function registerTheme(globalPrefixCls: string, theme: Theme) {
   const style = getStyle(globalPrefixCls, theme);
 
   if (canUseDom()) {
+    // updateCSS 更新业务代码中的主题色: 创建 style 标签，值为cssList，并作为最后一个子元素插在head标签下
     updateCSS(style, `${dynamicStyleMark}-dynamic-theme`);
   } else {
     warning(false, 'ConfigProvider', 'SSR do not support dynamic theme with css variables.');

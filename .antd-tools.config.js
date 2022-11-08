@@ -13,6 +13,7 @@ module.exports = {
 }
 
 // We need compile additional content for antd user
+// 将 components/**/style/index-pure.less 写进 lib/style/components.less，es 中为什么没写？ // TODO
 function finalizeCompile() {
   if (fs.existsSync(path.join(__dirname, './lib'))) {
     // Build a entry less file to dist/antd.less
@@ -37,6 +38,13 @@ function finalizeCompile() {
   }
 }
 
+/**
+ * BuildThemeFile
+ *
+ * @param {any} theme 主题名
+ * @param {any} vars Less 变量
+ * @returns
+ */
 function buildThemeFile(theme, vars) {
   // Build less entry file: dist/antd.${theme}.less
   if (theme !== 'default') {
@@ -81,6 +89,7 @@ function finalizeDist() {
       '@import "../lib/style/default.less";\n@import "../lib/style/components.less";',
     );
     // eslint-disable-next-line no-console
+    // 构建 theme.js 文件
     fs.writeFileSync(
       path.join(process.cwd(), 'dist', 'theme.js'),
       `const defaultTheme = require('./default-theme.js');\n`,
@@ -138,6 +147,8 @@ module.exports = {
   compile: {
     includeLessFile: [/(\/|\\)components(\/|\\)style(\/|\\)default.less$/],
     transformTSFile(file) {
+      // 将 components/**/style/index.tsx 中的 '../../style/index.less' 转换成 '../../style/default.less'
+      // 实际是替换旧的写法
       if (isComponentStyleEntry(file)) {
         let content = file.contents.toString();
 
@@ -153,14 +164,18 @@ module.exports = {
       }
     },
     transformFile(file) {
+      // 1. 将 components/**/style/index.less 内容复制到 index-pure.less
+      // 2. 重写 components/**/style/index.less 为 '@root-entry-name: default;' "@import './index-pure.less';"
+      // 3. 输出到 libDir 或 esDir
       if (isComponentStyleEntry(file)) {
+        // 获取 indexLessFilePath 路径
         const indexLessFilePath = file.path.replace('index.tsx', 'index.less');
 
         if (fs.existsSync(indexLessFilePath)) {
           // We put origin `index.less` file to `index-pure.less`
           const pureFile = file.clone();
-          pureFile.contents = Buffer.from(fs.readFileSync(indexLessFilePath, 'utf8'));
-          pureFile.path = pureFile.path.replace('index.tsx', 'index-pure.less');
+          pureFile.contents = Buffer.from(fs.readFileSync(indexLessFilePath, 'utf8')); // 设置 pureFile 为 indexLessFile 内容
+          pureFile.path = pureFile.path.replace('index.tsx', 'index-pure.less'); // 生成 style/index-pure.less
 
           // Rewrite `index.less` file with `root-entry-name`
           const indexLessFile = file.clone();

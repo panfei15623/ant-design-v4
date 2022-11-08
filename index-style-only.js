@@ -3,6 +3,7 @@ function pascalCase(name) {
 }
 
 // Just import style for https://github.com/ant-design/ant-design/issues/3745
+// 可以给这个函数传入三个参数：一个要搜索的目录，一个标记表示是否还搜索其子目录， 以及一个匹配文件的正则表达式
 const req = require.context('./components', true, /^\.\/[^_][\w-]+\/style\/index\.tsx?$/);
 
 req.keys().forEach(mod => {

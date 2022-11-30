@@ -9,8 +9,16 @@ const DuplicatePackageCheckerPlugin = require('duplicate-package-checker-webpack
 const darkVars = require('./scripts/dark-vars');
 const compactVars = require('./scripts/compact-vars');
 
+// 导出的是 webpack
 const { webpack } = getWebpackConfig;
 
+/**
+ * InjectLessVariables
+ *
+ * @param {any} config WebpackConfig
+ * @param {any} variables Less modifyVars variables
+ * @returns
+ */
 function injectLessVariables(config, variables) {
   (Array.isArray(config) ? config : [config]).forEach(conf => {
     conf.module.rules.forEach(rule => {
@@ -60,6 +68,13 @@ function externalMoment(config) {
   };
 }
 
+/**
+ * ProcessWebpackThemeConfig
+ *
+ * @param {any} themeConfig WebpackConfig
+ * @param {any} theme 主题名
+ * @param {any} vars 变量
+ */
 function processWebpackThemeConfig(themeConfig, theme, vars) {
   themeConfig.forEach(config => {
     ignoreMomentLocale(config);
@@ -78,6 +93,7 @@ function processWebpackThemeConfig(themeConfig, theme, vars) {
         console.log(chalk.red('🆘 Seems entry has changed! It should be `./index`'));
       }
 
+      // 将 entry antd.min 替换成 antd.[theme].min
       config.entry[entryName.replace('antd', `antd.${theme}`)] = replacedPath;
       delete config.entry[entryName];
     });
@@ -107,6 +123,8 @@ function processWebpackThemeConfig(themeConfig, theme, vars) {
 const legacyEntryVars = {
   'root-entry-name': 'default',
 };
+
+// 将 'root-entry-name' 变量添加到 less-loader 配置中
 const webpackConfig = injectLessVariables(getWebpackConfig(false), legacyEntryVars);
 const webpackDarkConfig = injectLessVariables(getWebpackConfig(false), legacyEntryVars);
 const webpackCompactConfig = injectLessVariables(getWebpackConfig(false), legacyEntryVars);
@@ -116,8 +134,11 @@ const webpackVariableConfig = injectLessVariables(getWebpackConfig(false), {
 
 if (process.env.RUN_ENV === 'PRODUCTION') {
   webpackConfig.forEach(config => {
+    // 特殊处理 moment
     ignoreMomentLocale(config);
     externalMoment(config);
+
+    // 处理 locale 文件
     addLocales(config);
     // Reduce non-minified dist files size
     config.optimization.usedExports = true;
@@ -149,6 +170,7 @@ if (process.env.RUN_ENV === 'PRODUCTION') {
     }
   });
 
+  // 处理 webpack 主题配置
   processWebpackThemeConfig(webpackDarkConfig, 'dark', darkVars);
   processWebpackThemeConfig(webpackCompactConfig, 'compact', compactVars);
   processWebpackThemeConfig(webpackVariableConfig, 'variable', {});

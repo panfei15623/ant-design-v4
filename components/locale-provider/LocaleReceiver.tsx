@@ -20,10 +20,13 @@ const LocaleReceiver = <C extends LocaleComponentName = LocaleComponentName>(
   props: LocaleReceiverProps<C>,
 ) => {
   const { componentName = 'global' as C, defaultLocale, children } = props;
-  const antLocale = React.useContext<LocaleContextProps | undefined>(LocaleContext);
+  const antLocale = React.useContext<LocaleContextProps | undefined>(LocaleContext); // 默认 undefined
 
+  // 根据组件获取 localeValue
   const getLocale = React.useMemo<NonNullable<Locale[C]>>(() => {
+    // 根据组件获取 defaultLocaleValue
     const locale = defaultLocale || defaultLocaleData[componentName];
+
     const localeFromContext = antLocale?.[componentName] ?? {};
     return {
       ...(locale instanceof Function ? locale() : locale),

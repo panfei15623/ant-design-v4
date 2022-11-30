@@ -47,13 +47,13 @@ export const configConsumerProps = [
 
 // These props is used by `useContext` directly in sub component
 const PASSED_PROPS: Exclude<keyof ConfigConsumerProps, 'rootPrefixCls' | 'getPrefixCls'>[] = [
-  'getTargetContainer',
-  'getPopupContainer',
-  'renderEmpty',
-  'pageHeader',
-  'input',
+  'getTargetContainer', // 配置 Affix、Anchor 滚动监听容器。
+  'getPopupContainer', // 弹出框（Select, Tooltip, Menu 等等）渲染父节点，默认渲染到 body 上。
+  'renderEmpty', // 自定义组件空状态
+  'pageHeader', // 统一设置 PageHeader 的 ghost，参考 PageHeader
+  'input', // 设置 Input 组件的通用属性
   'pagination',
-  'form',
+  'form', // 设置 Form 组件的通用属性
 ];
 
 export interface ConfigProviderProps {
@@ -153,29 +153,32 @@ export const globalConfig = () => ({
 });
 
 const ProviderChildren: React.FC<ProviderChildrenProps> = props => {
+  // ConfigProvider 为组件提供统一的全局化配置
   const {
-    children,
-    csp,
-    autoInsertSpaceInButton,
-    form,
-    locale,
-    componentSize,
-    direction,
-    space,
-    virtual,
-    dropdownMatchSelectWidth,
-    legacyLocale,
-    parentContext,
-    iconPrefixCls,
-    componentDisabled,
+    children, // ConfigProvider 的 children
+    csp, // 设置 Content Security Policy 配置
+    autoInsertSpaceInButton, // 设置为 false 时，移除按钮中 2 个汉字之间的空格
+    form, // 设置 Form 组件的通用属性
+    locale, // ConfigProvider 配置的 locale
+    componentSize, // 设置 antd 组件大小
+    direction, // 设置文本展示方向
+    space, // 设置 Space 的 size
+    virtual, // 设置 false 时关闭虚拟滚动
+    dropdownMatchSelectWidth, // 下拉菜单和选择器同宽。默认将设置 min-width，当值小于选择框宽度时会被忽略。false 时会关闭虚拟滚动
+    legacyLocale, // 旧版 locale，不是 ConfigProvider 配置项
+    parentContext, // { getPrefixCls: (suffixCls?: string, customizePrefixCls?: string) => string }
+    iconPrefixCls, // 设置图标统一样式前缀，默认 anticon。注意：需要配合 less 变量 @iconfont-css-prefix 使用
+    componentDisabled, // 设置 antd 组件禁用状态
   } = props;
 
   const getPrefixCls = React.useCallback(
     (suffixCls: string, customizePrefixCls?: string) => {
+      // prefixCls：设置统一样式前缀。注意：需要配合 less 变量 @ant-prefix 使用，默认 ant
       const { prefixCls } = props;
 
       if (customizePrefixCls) return customizePrefixCls;
 
+      // 得到 prefixCls || 'ant'
       const mergedPrefixCls = prefixCls || parentContext.getPrefixCls('');
 
       return suffixCls ? `${mergedPrefixCls}-${suffixCls}` : mergedPrefixCls;
@@ -231,15 +234,21 @@ const ProviderChildren: React.FC<ProviderChildrenProps> = props => {
     validateMessages =
       locale.Form?.defaultValidateMessages || defaultLocale.Form?.defaultValidateMessages || {};
   }
+
+  // 合并 form validateMessages 配置
   if (form && form.validateMessages) {
     validateMessages = { ...validateMessages, ...form.validateMessages };
   }
 
+  // 以下 provider 层层包裹
+
+  // 处理 Form validateMessages
   if (Object.keys(validateMessages).length > 0) {
     childNode = <RcFormProvider validateMessages={validateMessages}>{children}</RcFormProvider>;
   }
 
   if (locale) {
+    // 得到 LocaleContext.Provider
     childNode = (
       <LocaleProvider locale={locale} _ANT_MARK__={ANT_MARK}>
         {childNode}
@@ -247,16 +256,19 @@ const ProviderChildren: React.FC<ProviderChildrenProps> = props => {
     );
   }
 
+  // 处理 Icon
   if (iconPrefixCls || csp) {
     childNode = (
       <IconContext.Provider value={memoIconContextValue}>{childNode}</IconContext.Provider>
     );
   }
 
+  // 处理 Size
   if (componentSize) {
     childNode = <SizeContextProvider size={componentSize}>{childNode}</SizeContextProvider>;
   }
 
+  // 处理 disabled
   if (componentDisabled !== undefined) {
     childNode = (
       <DisabledContextProvider disabled={componentDisabled}>{childNode}</DisabledContextProvider>
@@ -266,6 +278,7 @@ const ProviderChildren: React.FC<ProviderChildrenProps> = props => {
   return <ConfigContext.Provider value={memoedConfig}>{childNode}</ConfigContext.Provider>;
 };
 
+// ConfigProvider 组件入口
 const ConfigProvider: React.FC<ConfigProviderProps> & {
   ConfigContext: typeof ConfigContext;
   SizeContext: typeof SizeContext;
@@ -286,9 +299,9 @@ const ConfigProvider: React.FC<ConfigProviderProps> & {
     <LocaleReceiver>
       {(_, __, legacyLocale) => (
         <ConfigConsumer>
-          {context => (
-            <ProviderChildren parentContext={context} legacyLocale={legacyLocale} {...props} />
-          )}
+          {(context: {
+            getPrefixCls: (suffixCls?: string, customizePrefixCls?: string) => string;
+          }) => <ProviderChildren parentContext={context} legacyLocale={legacyLocale} {...props} />}
         </ConfigConsumer>
       )}
     </LocaleReceiver>
